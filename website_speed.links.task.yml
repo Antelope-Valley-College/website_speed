@@ -1,0 +1,17 @@
+website_speed.report_summary_page:
+  title: 'Summary'
+  route_name: website_speed.report_summary_page
+  base_route: website_speed.report_summary_page
+  weight: 10
+
+website_speed.report_by_route:
+  title: 'By Route'
+  route_name: website_speed.report_by_route
+  base_route: website_speed.report_summary_page
+  weight: 20
+
+website_speed.report_by_url:
+  title: 'By URL'
+  route_name: website_speed.report_by_url
+  base_route: website_speed.report_summary_page
+  weight: 30

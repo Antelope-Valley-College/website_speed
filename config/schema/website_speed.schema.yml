@@ -1,0 +1,8 @@
+# Schema for the configuration files of the website_speed module.
+website_speed.settings:
+  type: config_object
+  label: 'Website Speed settings'
+  mapping:
+    enable_tracking:
+      type: boolean
+      label: 'Enable tracking of Website Speed'

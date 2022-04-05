@@ -1,0 +1,95 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the website_speed module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function website_speed_schema() {
+  $schema['website_speed_timings'] = [
+    'description' => 'Website Speed page speed table to store timings of different page requests.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique timing ID.',
+      ],
+      'url' => [
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => TRUE,
+        'description' => 'URL where the page is timed.',
+      ],
+      'masked_url' => [
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => TRUE,
+        'description' => 'Masked URL to meaningfully group URLs.',
+      ],
+      'route_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'The route corresponding to the URL.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The {users}.uid of the user who was logged in.',
+      ],
+      'index_timed' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Whether the timing was based on timer from index.php.',
+      ],
+      'response_code' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The response code sent for the response.',
+      ],
+      'response_start' => [
+        'type' => 'float',
+        'size' => 'normal',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Time taken till response being sent out for the request.',
+      ],
+      'kernel_terminate' => [
+        'type' => 'float',
+        'size' => 'normal',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Time taken till end of request processing.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of when the request was processed.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'created' => ['created'],
+      'uid' => ['uid'],
+      'masked_url' => ['masked_url'],
+      'route' => ['route'],
+      'index_timed' => ['index_timed'],
+      'response_code' => ['response_code'],
+    ],
+  ];
+
+  return $schema;
+}

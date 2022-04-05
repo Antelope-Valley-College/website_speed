@@ -1,0 +1,31 @@
+website_speed.settings_form:
+  path: /admin/config/development/website-speed
+  defaults:
+    _title: 'Website Speed'
+    _form: \Drupal\website_speed\Form\WebsiteSpeedSettingsForm
+  requirements:
+    _permission: 'administer website speed'
+
+website_speed.report_summary_page:
+  path: '/admin/reports/website-speed'
+  defaults:
+    _title: "Website Speed Summary"
+    _controller: '\Drupal\website_speed\Controller\WebsiteSpeedReport::showSummaryPage'
+  requirements:
+    _permission: 'access site reports'
+
+website_speed.report_by_route:
+  path: '/admin/reports/website-speed/by-route'
+  defaults:
+    _title: "Website Speed Reports - By Route"
+    _controller: '\Drupal\website_speed\Controller\WebsiteSpeedReport::showReportsByRoute'
+  requirements:
+    _permission: 'access site reports'
+
+website_speed.report_by_url:
+  path: '/admin/reports/website-speed/by-url'
+  defaults:
+    _title: "Website Speed Reports - By URL"
+    _controller: '\Drupal\website_speed\Controller\WebsiteSpeedReport::showReportsByUrl'
+  requirements:
+    _permission: 'access site reports'

@@ -1,0 +1,6 @@
+services:
+  website_speed.website_speed_subscriber:
+    class: Drupal\website_speed\EventSubscriber\WebsiteSpeedSubscriber
+    tags:
+      - { name: 'event_subscriber' }
+    arguments: ['@config.factory', '@database', '@logger.factory', '@request_stack', '@current_user']
