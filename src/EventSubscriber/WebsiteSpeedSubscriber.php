@@ -126,7 +126,7 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
   public function websiteSpeedOnBoot(RequestEvent $event) {
     // If the configuration to enable tracking is disabled
     // then disable the recording of speeds.
-    if ($this->configFactory->get('website_speed')->get('enable_tracking')) {
+    if (!$this->configFactory->get('website_speed.settings')->get('enable_tracking')) {
       $this->disabled = TRUE;
       return;
     }
@@ -175,6 +175,8 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
     $this->timer['terminate'] = microtime(TRUE);
     $response = $event->getResponse();
     $this->responseCode = $response->getStatusCode();
+    // Recording happens on terminate event but only once
+    // on the first terminate event.
     if (!$this->saved) {
       $this->saveTimerData();
     }

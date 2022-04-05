@@ -113,41 +113,49 @@ class WebsiteSpeedReport extends ControllerBase {
    *   max_response - Max Response time.
    */
   public function showSpeedByRoute($group_by, $type) {
+    $config = $this->config('website_speed.settings');
+    $rows_per_table = $config->get('items_per_table');
+    $page_speed_column = 'response_start';
+    if ($config->get('use_terminate_time')) {
+      $page_speed_column = 'kernel_terminate';
+    }
+    $title_context = ['@num_rows' => $rows_per_table];
+
     switch ($group_by) {
       case 'route':
         $group_by = 'route_name';
         $main_column_name = 'route_name';
         $main_column_title = 'Route';
-        $title_context = ['@name' => 'Routes'];
+        $title_context['@name'] = 'Routes';
         break;
 
       case 'url':
         $group_by = 'url';
         $main_column_name = 'url';
         $main_column_title = 'URL';
-        $title_context = ['@name' => 'URLs'];
+        $title_context['@name'] = 'URLs';
         break;
 
     }
     switch ($type) {
       case 'total_time':
         $order_by = 'total_time DESC';
-        $table_title = $this->t('Top 10 @name by Total Time Spent', $title_context);
+        $table_title = $this->t('Top @num_rows @name by Total Time Spent', $title_context);
         break;
 
       case 'count_requests':
         $order_by = 'count_items DESC';
-        $table_title = $this->t('Top 10 @name by Total Number of Requests', $title_context);
+        $table_title = $this->t('Top @num_rows @name by Total Number of Requests', $title_context);
         break;
 
       case 'average_response':
         $order_by = 'avg_response_start DESC';
-        $table_title = $this->t('Top 10 @name by Average Response Time', $title_context);
+        $table_title = $this->t('Top @num_rows @name by Average Response Time', $title_context);
         break;
 
       case 'max_response':
         $order_by = 'max_response_start DESC';
-        $table_title = $this->t('Top 10 @name by Maximum Response Time', $title_context);
+        $table_title = $this->t('Top @num_rows @name by Maximum Response Time', $title_context);
         break;
 
     }
@@ -155,18 +163,15 @@ class WebsiteSpeedReport extends ControllerBase {
     // Get the average page speed.
     $query = "SELECT
         ${main_column_name},
-        AVG(ws.response_start) AS avg_response_start,
-        MAX(ws.response_start) AS max_response_start,
-        MIN(ws.response_start) AS min_response_start,
-        AVG(ws.kernel_terminate) AS avg_kernel_terminate,
-        MAX(ws.kernel_terminate) AS max_kernel_terminate,
-        MIN(ws.kernel_terminate) AS min_kernel_terminate,
-        SUM(ws.kernel_terminate) AS total_time,
+        AVG(ws.${page_speed_column}) AS avg_response_start,
+        MAX(ws.${page_speed_column}) AS max_response_start,
+        MIN(ws.${page_speed_column}) AS min_response_start,
+        SUM(ws.${page_speed_column}) AS total_time,
         COUNT(*) AS count_items
       FROM website_speed_timings ws
       GROUP BY ${group_by}
       ORDER BY ${order_by}
-      LIMIT 10";
+      LIMIT ${rows_per_table}";
     $result = $this->database->query($query);
     $build = [];
     $rows = [];
@@ -194,12 +199,9 @@ class WebsiteSpeedReport extends ControllerBase {
       '#type' => "table",
       '#header' => [
         $main_column_title,
-        "Avg. Resp. Time",
-        "Max. Resp. Time",
-        "Min. Resp. Time",
-        "Avg. Exec. Time",
-        "Max. Exec. Time",
-        "Min. Exec. Time",
+        "Avg. Page. Time",
+        "Max. Page. Time",
+        "Min. Page. Time",
         "Total Time",
         "Total Requests",
       ],
@@ -217,16 +219,21 @@ class WebsiteSpeedReport extends ControllerBase {
    * Return render array for page speed distribution.
    */
   public function showSummaryStatistics() {
+    $page_speed_column = 'response_start';
+    if ($this->config('website_speed.settings')->get('use_terminate_time')) {
+      $page_speed_column = 'kernel_terminate';
+    }
     // Get the average page speed.
-    $query = 'SELECT
+    $query = "SELECT
         AVG(ws.response_start) AS avg_response_start,
         AVG(ws.kernel_terminate) AS avg_kernel_terminate,
         MAX(ws.response_start) AS max_response_start,
         MAX(ws.kernel_terminate) AS max_kernel_terminate,
         MIN(ws.response_start) AS min_response_start,
         MIN(ws.kernel_terminate) AS min_kernel_terminate,
+        SUM(ws.${page_speed_column}) AS total_time,
         COUNT(*) AS count_items
-      FROM website_speed_timings ws';
+      FROM website_speed_timings ws";
     $result = $this->database->query($query)->fetch();
     $build = [];
     $rows = [];
@@ -254,6 +261,10 @@ class WebsiteSpeedReport extends ControllerBase {
       $rows[] = [
         $this->t('Minimum time to end of PHP execution'),
         $this->formatNumber($result->min_kernel_terminate, 'sec'),
+      ];
+      $rows[] = [
+        $this->t('Total time spent across all requests'),
+        $this->formatNumber($result->total_time, 'sec'),
       ];
       $rows[] = [
         $this->t('Number of Requests'),

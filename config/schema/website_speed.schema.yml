@@ -6,3 +6,9 @@ website_speed.settings:
     enable_tracking:
       type: boolean
       label: 'Enable tracking of Website Speed'
+    use_terminate_time:
+      type: boolean
+      label: 'Use Terminate time to calculate page speed'
+    items_per_table:
+      type: integer
+      label: 'Number of rows in Top X tables'

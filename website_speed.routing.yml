@@ -1,5 +1,5 @@
 website_speed.settings_form:
-  path: /admin/config/development/website-speed
+  path: /admin/config/development/performance/website-speed
   defaults:
     _title: 'Website Speed'
     _form: \Drupal\website_speed\Form\WebsiteSpeedSettingsForm
