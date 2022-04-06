@@ -1,0 +1,5 @@
+enable_tracking: true
+use_terminate_time: true
+items_per_table: 10
+perc_tracked: !!float 100
+bins_in_distribution: !!float 10
