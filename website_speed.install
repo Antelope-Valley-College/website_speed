@@ -85,7 +85,7 @@ function website_speed_schema() {
       'created' => ['created'],
       'uid' => ['uid'],
       'masked_url' => ['masked_url'],
-      'route' => ['route'],
+      'route_name' => ['route_name'],
       'index_timed' => ['index_timed'],
       'response_code' => ['response_code'],
     ],
