@@ -115,6 +115,17 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
     $this->responseCode = 0;
     $this->disabled = FALSE;
     $this->saved = FALSE;
+    // If a global timer has been initialized in index.php use that
+    // instead of the local timer started at the request event.
+    // There could be a small delay from the point index.php
+    // starts to the point the REQUEST event is fired.
+    global $_website_speed_timer;
+    if (isset($_website_speed_timer)) {
+      $this->timer['start'] = $_website_speed_timer;
+    }
+    else {
+      $this->timer['start'] = microtime(TRUE);
+    }
   }
 
   /**
@@ -130,17 +141,10 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
       $this->disabled = TRUE;
       return;
     }
-    // If a global timer has been initialized in index.php use that
-    // instead of the local timer started at the request event.
-    // There could be a small delay from the point index.php
-    // starts to the point the REQUEST event is fired.
-    global $_website_speed_timer;
-    if (isset($_website_speed_timer)) {
-      $this->timer['start'] = $_website_speed_timer;
-    }
-    else {
-      $this->timer['start'] = microtime(TRUE);
-    }
+    // The timer is initialized in the constructor but without this boot
+    // subscriber, the class will not be instantiated until response is
+    // ready. So even though this function does not do anything, the timer
+    // still gets instantiated when this subscriber is called.
   }
 
   /**
@@ -192,7 +196,12 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
     // If there is no Request or RouteMatch, return.
     $request = $this->requestStack->getCurrentRequest();
     $route = RouteMatch::createFromRequest($this->requestStack->getCurrentRequest())->getRouteName();
-    if (!$request || !$route) {
+    // When there is no request or route (drush commands)
+    // or when there is no response event - cache clear does not
+    // seem to have response events triggered - then don't
+    // track as we will have bad data points which will mess
+    // up ave, max, min etc.
+    if (!$request || !$route || !isset($this->timer['response'])) {
       return;
     }
     global $_website_speed_timer;
@@ -212,7 +221,7 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
     $created = $this->requestStack
       ->getCurrentRequest()->server
       ->get('REQUEST_TIME');
-    $index_timed = isset($_website_speed_timer) ? 1: 0;
+    $index_timed = isset($_website_speed_timer) ? 1 : 0;
     $this->database->insert('website_speed_timings')
       ->fields([
         'url' => $url,

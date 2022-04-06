@@ -7,8 +7,10 @@ use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\website_speed\WebsiteSpeedChart;
 
 /**
  * {@inheritdoc}
@@ -30,16 +32,36 @@ class WebsiteSpeedReport extends ControllerBase {
   private $database;
 
   /**
+   * The service container.
+   *
+   * @var \Symfony\Component\DependencyInjection\ContainerInterface
+   */
+  private $container;
+
+  /**
+   * Flag to decide to show charts or not.
+   *
+   * @var bool
+   */
+  private $showCharts;
+
+  /**
    * Construct the WebsiteSpeedReport Controller.
    *
    * @param \Drupal\core\block\BlockManager $blockManager
    *   The block manager to instantiate the report blocks.
    * @param \Drupal\Core\Database\Connection $database
    *   The active database connection.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handlere to check if charts module is enabled
+   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container;
+   *   The container interface
    */
-  public function __construct(BlockManager $blockManager, Connection $database) {
+  public function __construct(BlockManager $blockManager, Connection $database, ModuleHandlerInterface $module_handler, ContainerInterface $container) {
     $this->blockManager = $blockManager;
     $this->database = $database;
+    $this->showCharts = $module_handler->moduleExists('charts');
+    $this->container = $container;
   }
 
   /**
@@ -48,7 +70,9 @@ class WebsiteSpeedReport extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('plugin.manager.block'),
-      $container->get('database')
+      $container->get('database'),
+      $container->get('module_handler'),
+      $container
     );
   }
 
@@ -57,9 +81,12 @@ class WebsiteSpeedReport extends ControllerBase {
    */
   public function showSummaryPage(Request $request) {
     $render_array['performance_summary'] = $this->showSummaryStatistics();
+    if ($this->showCharts) {
+      $render_array['page_speed_distribution'] = $this->showPageSpeedDistribution();
+    }
     $render_array['page_speed_by_route_average_response'] = $this->showSpeedByRoute('route', 'average_response');
     $render_array['page_speed_by_url_average_response'] = $this->showSpeedByRoute('url', 'average_response');
-    $render_array['page_speed_distribution'] = $this->showPageSpeedDistribution();
+
     return $render_array;
   }
 
@@ -89,12 +116,108 @@ class WebsiteSpeedReport extends ControllerBase {
    * Return render array for page speed distribution.
    */
   public function showPageSpeedDistribution() {
+    $chart = new WebsiteSpeedChart($this->container);
+    $build = $chart->build;
+    $options = $chart->build['#options'];
+    $options['type'] = 'column';
+    unset($options['title']);
+    $options['yaxis_title'] = 'Percentage';
+    $options['xaxis_title'] = 'Time Range';
+
+    $config = $this->config('website_speed.settings');
+    $page_speed_column = 'response_start';
+    if ($config->get('use_terminate_time')) {
+      $page_speed_column = 'kernel_terminate';
+    }
+    // Get summary statistics from the data to be used
+    // to define chart ranges.
+    $query = "SELECT
+      AVG(ws.${page_speed_column}) AS avg_response_start,
+      MAX(ws.${page_speed_column}) AS max_response_start,
+      MIN(ws.${page_speed_column}) AS min_response_start,
+      SUM(ws.${page_speed_column}) AS total_time,
+      COUNT(*) AS total_requests
+      FROM website_speed_timings ws";
+    $stats = $this->database->query($query)->fetchAssoc();
+    // https://stats.libretexts.org/Bookshelves/Introductory_Statistics/Book%3A_Inferential_Statistics_and_Probability/07%3A_Continuous_Random_Variables/7.02%3A_Exponential_Distribution
+    // Getting range till 5 x average to cover 99% of responses.
+    $min = 0;
+    // Round up to the nearest 5 second.
+    $max = ceil(($stats['avg_response_start'] * 5)/5)*5;
+    // Divide range into 20 intervals.
+    $num_divisions = 20;
+    $increment = $max / $num_divisions;
+    $boundaries[0] = 0;
+    $categories = [];
+    $query = '';
+    // Dynamically generate the query to create the binned
+    // distribution for the page speeds.
+    for ($i = 1; $i <= $num_divisions; $i++) {
+      // Keep track of boundaries. Not used for now.
+      $boundaries[$i] = round($i * $increment, 2);
+      $range_start = $boundaries[$i - 1];
+      $range_end = $boundaries[$i];
+      if ($query != '') {
+        $query .= ' UNION ALL ';
+      }
+      // Generate the labels for the bins to be used
+      // for the x axis category labels.
+      $range_name = "${range_start}s - ${range_end}s";
+      $range_end_val = $range_end;
+      // Last range is all the way to the max value.
+      if ($i == $num_divisions) {
+        $range_end_val = $max + 1;
+        $range_name = "${range_start}s+";
+      }
+      $query .= " SELECT
+        '${range_name}' AS range_name,
+        COUNT(*) AS num_requests,
+        SUM(ws.${page_speed_column}) AS total_time
+        FROM website_speed_timings ws
+        WHERE ws.${page_speed_column} BETWEEN ${range_start} AND ${range_end_val} ";
+    }
+    $result = $this->database->query($query);
+    $data = [];
+    $categories = [];
+    // Loop through and find the data for the graph.
+    while ($row = $result->fetchAssoc()) {
+      $categories[] = $row['range_name'];
+      $data1[] = $row['num_requests'] * 100 / $stats['total_requests'];
+      $data2[] = $row['total_time'] * 100 / $stats['total_time'];
+    }
+
+    $seriesData[] = [
+      'name' => 'Percentage of Requests',
+      'color' => '#0678BE',
+      'type' => 'column',
+      'data' => $data1,
+    ];
+    $seriesData[] = [
+      'name' => 'Percentage of Time',
+      'color' => '#53B0EB',
+      'type' => 'column',
+      'data' => $data2,
+    ];
+    $build['#categories'] = $categories;
+    $build['#seriesData'] = $seriesData;
+    $build['#options'] = $options;
+    $chart = $build;
     $build = [];
-    $build['summary_title'] = [
+    $build['chart_title'] = [
       '#type' => 'html_tag',
       '#tag' => 'h3',
-      '#value' => $this->t('Page Speed Distribution'),
+      '#value' => "Page Speed Distribution",
     ];
+    $build['chart_description'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'p',
+      '#value' => "The chart plots the percentage of requests falling
+       within a page speed range along with the percentage of total time
+       consumed by all the requests within that range. This should give
+       an idea of the impact of the slow pages and a sense of where you
+       should focus on for performance optimization on the site.",
+    ];
+    $build['chart'] = $chart;
     return $build;
   }
 

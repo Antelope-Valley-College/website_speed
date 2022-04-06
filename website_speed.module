@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 
 /**
  * Implements hook_help().
@@ -15,14 +16,62 @@ function website_speed_help($route_name, RouteMatchInterface $route_match) {
     case 'help.page.website_speed':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Disable Login page module protects the /user/login page from anonymous users.') . '</p>';
+      $output .= '<p>' . t('The Website Speed module tracks page speed of different pages on the website.') . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Configuring the module') . '</dt>';
-      $output .= '<dd>' . t('All settings for this module are on the Disable Login page module configuration page, under the Configuration section under the Security sub menu. You can visit the configuration page directly from the module configuration link below.') . '</dd>';
+      $output .= '<dd>' . t('All settings for this module are on the Website Speed module configuration page, under the Configuration section under the Development > Performance > Website Speed sub menu. You can visit the configuration page directly from the module configuration link below.') . '</dd>';
       $output .= '<dt>' . t('Available configurations') . '</dt>';
-      $output .= '<dd>' . t('You can enable or disable the protection in the configuration page. You can also define the name of the secret key and the corresponding secret value for the key that will allow access to your login page.') . '</dd>';
+      $output .= '<dd>' . t('You can enable or disable tracking of page speeds. You can also define the number of rows to be shown in the reports.') . '</dd>';
       $output .= '</dl>';
       return $output;
+  }
+}
+
+
+/**
+ * Implements hook_theme().
+ */
+function website_speed_theme() {
+  return [
+    'website_speed_chart' => [
+      'template' => 'website_speed_chart',
+      'variables' => [
+        'library' => '',
+        'categories' => [],
+        'seriesData' => [],
+        'options' => [],
+        'id' => '',
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements template_preprocess_hook().
+ */
+function template_preprocess_website_speed_chart(&$variables) {
+  $moduleHandler = \Drupal::service('module_handler');
+  // Override chart capabilities only if charts module is installed.
+  if ($moduleHandler->moduleExists('charts')) {
+    // Charts override settings applied at this point.
+    $chartOverridePluginManager = \Drupal::service('plugin.manager.charts_override');
+    $plugin_definition = [];
+    $chartOverrideOptions = [];
+    try {
+      $plugin_definition = $chartOverridePluginManager->getDefinition($variables['library'] . '_overrides');
+      if (!empty($plugin_definition)) {
+        $chartOverridePlugin = $chartOverridePluginManager->createInstance($variables['library'] . '_overrides');
+        $chartOverrideOptions = $chartOverridePlugin->chartOverrides($variables['options']);
+      }
+    }
+    catch (PluginNotFoundException $e) {
+      \Drupal::service('messenger')
+        ->addMessage(t('Exception: @error', ['@error', $e->getMessage()]));
+    }
+
+    $plugin_manager = \Drupal::service('plugin.manager.charts');
+    $plugin = $plugin_manager->createInstance($variables['library']);
+    $plugin->buildVariables($variables['options'], $variables['id'], $variables, $variables['categories'], $variables['seriesData'], [], $chartOverrideOptions);
   }
 }
