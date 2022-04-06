@@ -20,7 +20,7 @@
     "drupal/core": "^8.0 || ^9.0"
   },
   "suggest": {
-    "drupal/charts": "When Charts module is installed with a supported charting library, the module will show graphs in the reports."
+    "drupal/charts": "When Charts module is installed with a supported charting library, the Website Speed module will show graphs in the page speed reports."
   }
 }
 
