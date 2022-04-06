@@ -116,6 +116,8 @@ class WebsiteSpeedReport extends ControllerBase {
    * Return render array for page speed distribution.
    */
   public function showPageSpeedDistribution() {
+    $config = $this->config('website_speed.settings');
+    $bins_in_distribution = $config->get('bins_in_distribution');
     $chart = new WebsiteSpeedChart($this->container);
     $build = $chart->build;
     $options = $chart->build['#options'];
@@ -144,8 +146,8 @@ class WebsiteSpeedReport extends ControllerBase {
     $min = 0;
     // Round up to the nearest 5 second.
     $max = ceil(($stats['avg_response_start'] * 5)/5)*5;
-    // Divide range into 20 intervals.
-    $num_divisions = 20;
+    // Divide range into X intervals based on config.
+    $num_divisions = $bins_in_distribution;
     $increment = $max / $num_divisions;
     $boundaries[0] = 0;
     $categories = [];
@@ -182,8 +184,8 @@ class WebsiteSpeedReport extends ControllerBase {
     // Loop through and find the data for the graph.
     while ($row = $result->fetchAssoc()) {
       $categories[] = $row['range_name'];
-      $data1[] = $row['num_requests'] * 100 / $stats['total_requests'];
-      $data2[] = $row['total_time'] * 100 / $stats['total_time'];
+      $data1[] = round($row['num_requests'] * 100 / $stats['total_requests'], 2);
+      $data2[] = round($row['total_time'] * 100 / $stats['total_time']);
     }
 
     $seriesData[] = [

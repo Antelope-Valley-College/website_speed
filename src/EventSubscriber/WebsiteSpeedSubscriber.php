@@ -204,6 +204,12 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
     if (!$request || !$route || !isset($this->timer['response'])) {
       return;
     }
+    // If this request should not be tracked based on the
+    // percentage of requests to be tracked calculation
+    // then return without saving to db.
+    if (!$this->shouldTrackRequest()) {
+      return;
+    }
     global $_website_speed_timer;
     $uid = $this->currentUser->id();
     $url = $this->requestStack->getCurrentRequest()->getRequestUri();
@@ -218,10 +224,13 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
     if ($url == '/') {
       $masked_url = '/';
     }
+    $index_timed = isset($_website_speed_timer) ? 1 : 0;
     $created = $this->requestStack
       ->getCurrentRequest()->server
       ->get('REQUEST_TIME');
-    $index_timed = isset($_website_speed_timer) ? 1 : 0;
+    // Record the page speed for this request.
+    // This is done after response is sent and hence
+    // should not have an impact on page speed.
     $this->database->insert('website_speed_timings')
       ->fields([
         'url' => $url,
@@ -236,6 +245,24 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
       ])
       ->execute();
     $this->saved = TRUE;
+  }
+
+  /**
+   * Check if this request has to be tracked probabilistically.
+   *
+   * Use the config for the percentage of requests to be tracked
+   * and check if this request has to be tracked. The function
+   * uses a time based sampling to achieve this.
+   */
+  public function shouldTrackRequest() {
+    $perc = $this->configFactory->get('website_speed.settings')->get('perc_tracked');
+    $limit = $perc * 1000;
+    $rand = microtime(TRUE);
+    $rand = round($rand * 100000, 0) % 100000;
+    if ($rand < $limit) {
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**
