@@ -94,8 +94,11 @@ class WebsiteSpeedReport extends ControllerBase {
    * Return render array for performance summary page.
    */
   public function showReportsByRoute(Request $request) {
+    if ($this->showCharts) {
+      $render_array['page_speed_by_route_graph'] = $this->showSpeedByRoute('route', 'average_response', 'chart');
+    }
     $render_array['page_speed_by_route_total_time'] = $this->showSpeedByRoute('route', 'total_time');
-    $render_array['page_speed_by_route_count_requests'] = $this->showSpeedByRoute('route', 'count_requests');
+    $render_array['page_speed_by_route_count_requests'] = $this->showSpeedByRoute('route', 'num_requests');
     $render_array['page_speed_by_route_average_response'] = $this->showSpeedByRoute('route', 'average_response');
     $render_array['page_speed_by_route_max_response'] = $this->showSpeedByRoute('route', 'max_response');
     return $render_array;
@@ -105,8 +108,11 @@ class WebsiteSpeedReport extends ControllerBase {
    * Return render array for performance summary page.
    */
   public function showReportsByUrl(Request $request) {
+    if ($this->showCharts) {
+      $render_array['page_speed_by_url_graph'] = $this->showSpeedByRoute('url', 'average_response', 'chart');
+    }
     $render_array['page_speed_by_url_total_time'] = $this->showSpeedByRoute('url', 'total_time');
-    $render_array['page_speed_by_url_count_requests'] = $this->showSpeedByRoute('url', 'count_requests');
+    $render_array['page_speed_by_url_count_requests'] = $this->showSpeedByRoute('url', 'num_requests');
     $render_array['page_speed_by_url_average_response'] = $this->showSpeedByRoute('url', 'average_response');
     $render_array['page_speed_by_url_max_response'] = $this->showSpeedByRoute('url', 'max_response');
     return $render_array;
@@ -126,7 +132,6 @@ class WebsiteSpeedReport extends ControllerBase {
     $options['yaxis_title'] = 'Percentage';
     $options['xaxis_title'] = 'Time Range';
 
-    $config = $this->config('website_speed.settings');
     $page_speed_column = 'response_start';
     if ($config->get('use_terminate_time')) {
       $page_speed_column = 'kernel_terminate';
@@ -236,8 +241,10 @@ class WebsiteSpeedReport extends ControllerBase {
    *   count_requests - Order by total number of requests
    *   average_response - Average Response time.
    *   max_response - Max Response time.
+   * @param string $return
+   *   Option to pick between table or chart returns.
    */
-  public function showSpeedByRoute($group_by, $type) {
+  public function showSpeedByRoute($group_by, $type, $return = 'table') {
     $config = $this->config('website_speed.settings');
     $rows_per_table = $config->get('items_per_table');
     $page_speed_column = 'response_start';
@@ -268,8 +275,8 @@ class WebsiteSpeedReport extends ControllerBase {
         $table_title = $this->t('Top @num_rows @name by Total Time Spent', $title_context);
         break;
 
-      case 'count_requests':
-        $order_by = 'count_items DESC';
+      case 'num_requests':
+        $order_by = 'num_requests DESC';
         $table_title = $this->t('Top @num_rows @name by Total Number of Requests', $title_context);
         break;
 
@@ -285,6 +292,8 @@ class WebsiteSpeedReport extends ControllerBase {
 
     }
 
+    $stats = $this->getStats();
+
     // Get the average page speed.
     $query = "SELECT
         ${main_column_name},
@@ -292,7 +301,7 @@ class WebsiteSpeedReport extends ControllerBase {
         MAX(ws.${page_speed_column}) AS max_response_start,
         MIN(ws.${page_speed_column}) AS min_response_start,
         SUM(ws.${page_speed_column}) AS total_time,
-        COUNT(*) AS count_items
+        COUNT(*) AS num_requests
       FROM website_speed_timings ws
       GROUP BY ${group_by}
       ORDER BY ${order_by}
@@ -300,12 +309,19 @@ class WebsiteSpeedReport extends ControllerBase {
     $result = $this->database->query($query);
     $build = [];
     $rows = [];
+    $data1 = [];
+    $data2 = [];
+    $data3 = [];
     while ($row = $result->fetchAssoc()) {
+      $categories[] = $row[$main_column_name];
+      $data1[] = round($row['num_requests'] * 100 / $stats['total_requests'], 2);
+      $data2[] = round($row['total_time'] * 100 / $stats['total_time']);
+      $data3[] = round($row['avg_response_start'], 2);
       foreach ($row as $key => $value) {
         if ($key == 'route_name' || $key == 'url') {
           $row[$key] = $value;
         }
-        elseif ($key == 'count_items') {
+        elseif ($key == 'num_requests') {
           $row[$key] = $this->formatNumber($value, 'count');
         }
         else {
@@ -314,29 +330,78 @@ class WebsiteSpeedReport extends ControllerBase {
       }
       $rows[] = $row;
     }
-
-    $build['summary_title'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'h3',
-      '#value' => $table_title,
-    ];
-    $build['summary_table'] = [
-      '#type' => "table",
-      '#header' => [
-        $main_column_title,
-        "Avg. Page. Time",
-        "Max. Page. Time",
-        "Min. Page. Time",
-        "Total Time",
-        "Total Requests",
-      ],
-      '#sticky' => TRUE,
-      '#rows' => $rows,
-    ];
-    $build['separator'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'br',
-    ];
+    if ($return == 'table') {
+      $build['summary_title'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $table_title,
+      ];
+      $build['summary_table'] = [
+        '#type' => "table",
+        '#header' => [
+          $main_column_title,
+          "Avg. Page. Time",
+          "Max. Page. Time",
+          "Min. Page. Time",
+          "Total Time",
+          "Total Requests",
+        ],
+        '#sticky' => TRUE,
+        '#rows' => $rows,
+      ];
+      $build['separator'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'br',
+      ];
+    }
+    elseif ($return == 'chart') {
+      $chart = new WebsiteSpeedChart($this->container);
+      $build = $chart->build;
+      $options = $chart->build['#options'];
+      $options['type'] = 'bar';
+      $options['xaxis_min'] = -50;
+      unset($options['title']);
+      $options['yaxis_title'] = 'Requests';
+      $options['xaxis_title'] = 'Percentage';
+      $seriesData[] = [
+        'name' => 'Percentage of Requests',
+        'color' => '#0678BE',
+        'type' => 'bar',
+        'data' => $data1,
+      ];
+      $seriesData[] = [
+        'name' => 'Percentage of Time',
+        'color' => '#53B0EB',
+        'type' => 'bar',
+        'data' => $data2,
+      ];
+      $seriesData[] = [
+        'name' => 'Response Time',
+        'color' => '#FF3333',
+        'type' => 'line',
+        'data' => $data3,
+      ];
+      $build['#categories'] = $categories;
+      $build['#seriesData'] = $seriesData;
+      $build['#options'] = $options;
+      $chart = $build;
+      $build = [];
+      $build['chart_title'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $table_title,
+      ];
+      $build['chart_description'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => "The chart plots the percentage of requests for a
+         ${main_column_title} along with the percentage of total time
+         consumed by all the requests for the same. This should give
+         an idea of the impact of the slow pages and a sense of where you
+         should focus on for performance optimization on the site.",
+      ];
+      $build['chart'] = $chart;
+    }
     return $build;
   }
 
@@ -432,6 +497,31 @@ class WebsiteSpeedReport extends ControllerBase {
     if ($type == 'count') {
       return number_format($input, 0);
     }
+  }
+
+  /**
+   * Return statistics from the page speed timings table.
+   *
+   * @return array
+   *   Returns statistics from the table.
+   */
+  public function getStats() {
+    $config = $this->config('website_speed.settings');
+    $page_speed_column = 'response_start';
+    if ($config->get('use_terminate_time')) {
+      $page_speed_column = 'kernel_terminate';
+    }
+    // Get summary statistics from the data to be used
+    // to define chart ranges.
+    $query = "SELECT
+      AVG(ws.${page_speed_column}) AS avg_response_start,
+      MAX(ws.${page_speed_column}) AS max_response_start,
+      MIN(ws.${page_speed_column}) AS min_response_start,
+      SUM(ws.${page_speed_column}) AS total_time,
+      COUNT(*) AS total_requests
+      FROM website_speed_timings ws";
+    $stats = $this->database->query($query)->fetchAssoc();
+    return $stats;
   }
 
 }
