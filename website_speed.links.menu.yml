@@ -1,7 +1,7 @@
 website_speed.settings_form:
   title: 'Website Speed'
   description: 'Configure monitoring of speed of pages in website'
-  parent:  system.performance_settings
+  parent:  system.admin_config_development
   route_name: website_speed.settings_form
 
 website_speed.report_summary_page:
