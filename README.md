@@ -1,9 +1,42 @@
 # Website Speed
 
+The Website Speed module provides an easy to use mechanism to check the
+speed of your website. It monitors the page generation performance of
+the different routes / URLs in the website.
+
+The module keeps track of the time to generate the response and also till
+the end of PHP execution on the page. Different reports are provided
+through the administration reports section and this can be used to monitor
+the performance of the website and take appropriate performance
+optimization actions to improve it.
+
 ## Installation
 
 To install this module, `composer require` it, or  place it in your modules
 folder and enable it on the modules page.
+
+The module supports showing charts in the admin reports. If you want to see
+these charts you will need to install the charts module and install a
+supported library. The module has been tested with billboard.js library.
+
+Charts module and supporting charts_billboard module has to be installed
+first. Follow the instructions in the README for the charts module and the
+charts_billboard module to install these modules.
+
+You can install using composer and this requires adding the billboard.js
+repository to the main composer.json. If your site is not set up with
+composer, you can also install these manually like you would install
+any other Drupal module or library.
+
+Once charts module is installed, you will also have to go to the charts
+default configuration page and save the default configuration for charts
+module. You might also have to save default configuration for the selected
+charting library. At the time of writing this, the billboard.js library
+does not need any additional configuration.
+
+Although the module has been tested with billboard.js, it might work
+very well with any other library. If you experience issues, please share
+in the Drupal issue queue for this project.
 
 ## Configuration
 
