@@ -89,4 +89,15 @@ class WebsiteSpeedChart {
     ];
 
   }
+
+  /**
+   * Check if the chart can be shown based on config settings.
+   */
+  public function canRenderChart() {
+    if (!isset($this->chartSettings['library'])) {
+      return FALSE;
+    }
+    return TRUE;
+  }
+
 }

@@ -208,23 +208,32 @@ class WebsiteSpeedReport extends ControllerBase {
     $build['#categories'] = $categories;
     $build['#seriesData'] = $seriesData;
     $build['#options'] = $options;
-    $chart = $build;
+    $chart_build = $build;
     $build = [];
     $build['chart_title'] = [
       '#type' => 'html_tag',
       '#tag' => 'h3',
       '#value' => "Page Speed Distribution",
     ];
-    $build['chart_description'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'p',
-      '#value' => "The chart plots the percentage of requests falling
-       within a page speed range along with the percentage of total time
-       consumed by all the requests within that range. This should give
-       an idea of the impact of the slow pages and a sense of where you
-       should focus on for performance optimization on the site.",
-    ];
-    $build['chart'] = $chart;
+    if ($chart->canRenderChart()) {
+      $build['chart_description'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => "The chart plots the percentage of requests falling
+        within a page speed range along with the percentage of total time
+        consumed by all the requests within that range. This should give
+        an idea of the impact of the slow pages and a sense of where you
+        should focus on for performance optimization on the site.",
+      ];
+      $build['chart'] = $chart_build;
+    }
+    else {
+      $build['chart_description'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => "You will have to set the configuration for the charts module to render charts.",
+      ];
+    }
     return $build;
   }
 
@@ -384,23 +393,32 @@ class WebsiteSpeedReport extends ControllerBase {
       $build['#categories'] = $categories;
       $build['#seriesData'] = $seriesData;
       $build['#options'] = $options;
-      $chart = $build;
+      $chart_build = $build;
       $build = [];
       $build['chart_title'] = [
         '#type' => 'html_tag',
         '#tag' => 'h3',
         '#value' => $table_title,
       ];
-      $build['chart_description'] = [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => "The chart plots the percentage of requests for a
-         ${main_column_title} along with the percentage of total time
-         consumed by all the requests for the same. This should give
-         an idea of the impact of the slow pages and a sense of where you
-         should focus on for performance optimization on the site.",
-      ];
-      $build['chart'] = $chart;
+      if ($chart->canRenderChart()) {
+        $build['chart_description'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => "The chart plots the percentage of requests for a
+           ${main_column_title} along with the percentage of total time
+           consumed by all the requests for the same. This should give
+           an idea of the impact of the slow pages and a sense of where you
+           should focus on for performance optimization on the site.",
+        ];
+        $build['chart'] = $chart_build;
+      }
+      else {
+        $build['chart_description'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => "You will have to set the configuration for the charts module to render charts.",
+        ];
+      }
     }
     return $build;
   }
