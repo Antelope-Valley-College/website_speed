@@ -23,20 +23,22 @@ Charts module and supporting charts_billboard module has to be installed
 first. Follow the instructions in the README for the charts module and the
 charts_billboard module to install these modules.
 
-You can install using composer and this requires adding the billboard.js
-repository to the main composer.json. If your site is not set up with
+You can install using composer and this requires adding the billboard.js and
+D3js repositories to the main composer.json. If your site is not set up with
 composer, you can also install these manually like you would install
-any other Drupal module or library.
+any other Drupal module or library. Follow the instructions in the README
+for the charts_billboard submodule.
 
 Once charts module is installed, you will also have to go to the charts
-default configuration page and save the default configuration for charts
-module. You might also have to save default configuration for the selected
-charting library. At the time of writing this, the billboard.js library
-does not need any additional configuration.
+default configuration page, pick a library and save the default configuration
+for charts module. You might also have to save default configuration for the
+selected charting library. At the time of writing this, the billboard.js
+library does not need any additional configuration.
 
 Although the module has been tested with billboard.js, it might work
-very well with any other library. If you experience issues, please share
-in the Drupal issue queue for this project.
+very well with any other charting library supported by the charts module. 
+If you experience issues, please share in the Drupal issue queue for this
+project.
 
 ## Configuration
 
