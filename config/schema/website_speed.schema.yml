@@ -6,9 +6,21 @@ website_speed.settings:
     enable_tracking:
       type: boolean
       label: 'Enable tracking of Website Speed'
+    perc_tracked:
+      type: float
+      label: 'Percentage of requests to be tracked'
     use_terminate_time:
       type: boolean
       label: 'Use Terminate time to calculate page speed'
     items_per_table:
       type: integer
       label: 'Number of rows in Top X tables'
+    bins_in_distribution:
+      type: integer
+      label: 'Number of bins for the distributions / graphs'
+    timings_to_retain:
+      type: integer
+      label: 'Number of website timing entries to retain'
+    debug_mode:
+      type: boolean
+      label: 'Enable debug mode for the module'
