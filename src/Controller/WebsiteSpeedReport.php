@@ -8,8 +8,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Routing\RouteMatchInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\website_speed\WebsiteSpeedChart;
 
 /**
@@ -53,9 +51,9 @@ class WebsiteSpeedReport extends ControllerBase {
    * @param \Drupal\Core\Database\Connection $database
    *   The active database connection.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-   *   The module handlere to check if charts module is enabled
-   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container;
-   *   The container interface
+   *   The module handler to check if charts module is enabled.
+   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
+   *   The container interface.
    */
   public function __construct(BlockManager $blockManager, Connection $database, ModuleHandlerInterface $module_handler, ContainerInterface $container) {
     $this->blockManager = $blockManager;
@@ -150,7 +148,7 @@ class WebsiteSpeedReport extends ControllerBase {
     // Getting range till 5 x average to cover 99% of responses.
     $min = 0;
     // Round up to the nearest 5 second.
-    $max = ceil(($stats['avg_response_start'] * 5)/5)*5;
+    $max = ceil(($stats['avg_response_start'] * 5) / 5) * 5;
     // Divide range into X intervals based on config.
     $num_divisions = $bins_in_distribution;
     $increment = $max / $num_divisions;
@@ -405,10 +403,10 @@ class WebsiteSpeedReport extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'p',
           '#value' => "The chart plots the percentage of requests for a
-           ${main_column_title} along with the percentage of total time
-           consumed by all the requests for the same. This should give
-           an idea of the impact of the slow pages and a sense of where you
-           should focus on for performance optimization on the site.",
+            ${main_column_title} along with the percentage of total time
+            consumed by all the requests for the same. This should give
+            an idea of the impact of the slow pages and a sense of where you
+            should focus on for performance optimization on the site.",
         ];
         $build['chart'] = $chart_build;
       }
@@ -500,7 +498,7 @@ class WebsiteSpeedReport extends ControllerBase {
   /**
    * Return formatted number for given presentation type.
    *
-   * @param $input
+   * @param float $input
    *   Input value.
    * @param string $type
    *   Supported types - sec, count.

@@ -2,9 +2,7 @@
 
 namespace Drupal\website_speed;
 
-use Drupal\charts\Services\ChartsSettingsServiceInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
@@ -60,7 +58,6 @@ class WebsiteSpeedChart {
       'legend_position'     => 'right',
       'data_labels'         => $this->chartSettings['data_labels'],
       'tooltips'            => $this->chartSettings['tooltips'],
-      //'grouping'            => TRUE,
       'colors'              => $this->chartSettings['colors'],
       'min'                 => $this->chartSettings['min'],
       'max'                 => $this->chartSettings['max'],
