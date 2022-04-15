@@ -69,6 +69,12 @@ class WebsiteSpeedSettingsForm extends ConfigFormBase {
       '#description' => $this->t('Number of bins in the page speed distribution chart. Set value between 2 - 25'),
       '#default_value' => $config->get('bins_in_distribution'),
     ];
+    $form['debug_mode'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Debug Mode'),
+      '#default_value' => $config->get('debug_mode'),
+      '#description' => $this->t('Check this to enable debug mode with more debug logging etc.'),
+    ];
     return parent::buildForm($form, $form_state);
   }
 
@@ -112,6 +118,8 @@ class WebsiteSpeedSettingsForm extends ConfigFormBase {
       'items_per_table', floor($form_state->getValue('items_per_table'))
     )->set(
       'bins_in_distribution', floor($form_state->getValue('bins_in_distribution'))
+    )->set(
+      'debug_mode', floor($form_state->getValue('debug_mode'))
     );
     $settings->save();
   }

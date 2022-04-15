@@ -11,10 +11,8 @@ use Drupal\Core\Routing\RouteMatch;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
-use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Class WebsiteSpeedSubscriber.
@@ -88,6 +86,13 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
   private $saved;
 
   /**
+   * Flag indicating debug mode.
+   *
+   * @var bool
+   */
+  private $debug;
+
+  /**
    * Constructs a new WebsiteSpeedSubscriber object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
@@ -115,6 +120,7 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
     $this->responseCode = 0;
     $this->disabled = FALSE;
     $this->saved = FALSE;
+    $this->debug = FALSE;
     // If a global timer has been initialized in index.php use that
     // instead of the local timer started at the request event.
     // There could be a small delay from the point index.php
@@ -141,6 +147,10 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
       $this->disabled = TRUE;
       return;
     }
+    if ($this->configFactory->get('website_speed.settings')->get('debug_mode')) {
+      $this->debug = TRUE;
+      return;
+    }
     // The timer is initialized in the constructor but without this boot
     // subscriber, the class will not be instantiated until response is
     // ready. So even though this function does not do anything, the timer
@@ -160,9 +170,7 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
     // This event is raised multiple times. Record only the first.
     if (!isset($this->timer['response'])) {
       $this->timer['response'] = microtime(TRUE);
-      $time_taken = $this->timer['response'] - $this->timer['start'];
-      $logger = $this->loggerFactory->get('website_speed');
-      $logger->debug("R:" . $time_taken);
+      $this->debugLog('Resp');
     }
   }
 
@@ -184,9 +192,7 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
     if (!$this->saved) {
       $this->saveTimerData();
     }
-    $time_taken = $this->timer['terminate'] - $this->timer['start'];
-    $logger = $this->loggerFactory->get('website_speed');
-    $logger->debug("T:" . $time_taken);
+    $this->debugLog('Term');
   }
 
   /**
@@ -208,6 +214,7 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
     // percentage of requests to be tracked calculation
     // then return without saving to db.
     if (!$this->shouldTrackRequest()) {
+      $this->debugLog('Skip');
       return;
     }
     global $_website_speed_timer;
@@ -263,6 +270,26 @@ class WebsiteSpeedSubscriber implements EventSubscriberInterface {
       return TRUE;
     }
     return FALSE;
+  }
+
+  /**
+   * Helper function to log in watchdog.
+   *
+   * @param string $type
+   *   Type of debug log
+   *     Resp - track time for response event
+   *     Term - track time for terminate event
+   *     Skip - track time for terminate event when skipped.
+   */
+  private function debugLog($type) {
+    if ($this->debug) {
+      $url = $this->requestStack->getCurrentRequest()->getRequestUri();
+      $now = microtime(TRUE);
+      $time_taken = $now - $this->timer['start'];
+      $time_taken = round($time_taken * 100000, 0) / 100000;
+      $logger = $this->loggerFactory->get('website_speed');
+      $logger->debug($type . ": " . $time_taken . " - " . $url);
+    }
   }
 
   /**
