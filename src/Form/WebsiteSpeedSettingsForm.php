@@ -69,6 +69,14 @@ class WebsiteSpeedSettingsForm extends ConfigFormBase {
       '#description' => $this->t('Number of bins in the page speed distribution chart. Set value between 2 - 25'),
       '#default_value' => $config->get('bins_in_distribution'),
     ];
+    $form['timings_to_retain'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Timing entries to retain'),
+      '#maxlength' => 10,
+      '#size' => 10,
+      '#description' => $this->t('Number of timing entries to retain. Rest will be cleared in cron.'),
+      '#default_value' => $config->get('timings_to_retain'),
+    ];
     $form['debug_mode'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Debug Mode'),
@@ -98,7 +106,11 @@ class WebsiteSpeedSettingsForm extends ConfigFormBase {
         || $values['bins_in_distribution'] > 25) {
       $form_state->setErrorByName('bins_in_distribution', $this->t('Bins in Distribution must be an integer between 2 and 25.'));
     }
-
+    if (!is_numeric($values['timings_to_retain'])
+        || $values['timings_to_retain'] < 0
+        || $values['timings_to_retain'] > 1000000) {
+      $form_state->setErrorByName('timings_to_retain', $this->t('Timings to retain must be an integer <= 1,000,000.'));
+    }
     parent::validateForm($form, $form_state);
   }
 
@@ -118,6 +130,8 @@ class WebsiteSpeedSettingsForm extends ConfigFormBase {
       'items_per_table', floor($form_state->getValue('items_per_table'))
     )->set(
       'bins_in_distribution', floor($form_state->getValue('bins_in_distribution'))
+    )->set(
+      'timings_to_retain', floor($form_state->getValue('timings_to_retain'))
     )->set(
       'debug_mode', floor($form_state->getValue('debug_mode'))
     );

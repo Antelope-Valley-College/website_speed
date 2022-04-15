@@ -75,3 +75,30 @@ function template_preprocess_website_speed_chart(&$variables) {
     $plugin->buildVariables($variables['options'], $variables['id'], $variables, $variables['categories'], $variables['seriesData'], [], $chartOverrideOptions);
   }
 }
+
+/**
+ * Implements hook_cron().
+ */
+function website_speed_cron() {
+  // Cleanup the website_speed_timings table.
+  $row_limit = \Drupal::config('website_speed.settings')->get('timings_to_retain');
+
+  // For row limit n, get the wid of the nth row in descending wid order.
+  // Counting the most recent n rows avoids issues with wid number sequences,
+  // e.g. auto_increment value > 1 or rows deleted directly from the table.
+  if ($row_limit > 0) {
+    $connection = \Drupal::database();
+    $min_row = $connection->select('website_speed_timings', 'w')
+      ->fields('w', ['id'])
+      ->orderBy('id', 'DESC')
+      ->range($row_limit - 1, 1)
+      ->execute()->fetchField();
+
+    // Delete all table entries older than the nth row, if nth row was found.
+    if ($min_row) {
+      $connection->delete('website_speed_timings')
+        ->condition('id', $min_row, '<')
+        ->execute();
+    }
+  }
+}
