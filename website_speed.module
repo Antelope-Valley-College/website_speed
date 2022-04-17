@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 
 /**
@@ -13,19 +14,23 @@ use Drupal\Component\Plugin\Exception\PluginNotFoundException;
  */
 function website_speed_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
+    // Show contents of README.md per documentation here
+    // https://www.drupal.org/docs/develop/managing-a-drupalorg-theme-module-or-distribution-project/documenting-your-project/module-documentation-guidelines.
     case 'help.page.website_speed':
-      $output = '';
-      $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Website Speed module tracks page speed of different pages on the website.') . '</p>';
-      $output .= '<h3>' . t('Uses') . '</h3>';
-      $output .= '<dl>';
-      $output .= '<dt>' . t('Configuring the module') . '</dt>';
-      $output .= '<dd>' . t('All settings for this module are on the Website Speed module configuration page, under the Configuration section under the Development > Performance > Website Speed sub menu. You can visit the configuration page directly from the module configuration link below.') . '</dd>';
-      $output .= '<dt>' . t('Available configurations') . '</dt>';
-      $output .= '<dd>' . t('You can enable or disable tracking of page speeds. You can also define the number of rows to be shown in the reports.') . '</dd>';
-      $output .= '</dl>';
-      return $output;
+      $text = file_get_contents(__DIR__ . '/README.md');
+      if (!\Drupal::moduleHandler()->moduleExists('markdown')) {
+        return '<pre>' . Html::escape($text) . '</pre>';
+      }
+      else {
+        // Use the Markdown filter to render the README.
+        $filter_manager = \Drupal::service('plugin.manager.filter');
+        $settings = \Drupal::configFactory()->get('markdown.settings')->getRawData();
+        $config = ['settings' => $settings];
+        $filter = $filter_manager->createInstance('markdown', $config);
+        return $filter->process($text, 'en');
+      }
   }
+  return NULL;
 }
 
 
