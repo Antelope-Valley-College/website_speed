@@ -11,7 +11,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\website_speed\WebsiteSpeedChart;
 
 /**
- * {@inheritdoc}
+ * Controller for the Website Speed Reports.
  */
 class WebsiteSpeedReport extends ControllerBase {
 
@@ -126,7 +126,8 @@ class WebsiteSpeedReport extends ControllerBase {
     $build = $chart->build;
     $options = $chart->build['#options'];
     $options['type'] = 'column';
-    unset($options['title']);
+    $options['title'] = '';
+    //unset($options['title']);
     $options['yaxis_title'] = 'Percentage';
     $options['xaxis_title'] = 'Time Range';
 
