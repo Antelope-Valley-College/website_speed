@@ -127,7 +127,6 @@ class WebsiteSpeedReport extends ControllerBase {
     $options = $chart->build['#options'];
     $options['type'] = 'column';
     $options['title'] = '';
-    //unset($options['title']);
     $options['yaxis_title'] = 'Percentage';
     $options['xaxis_title'] = 'Time Range';
 

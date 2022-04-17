@@ -58,7 +58,7 @@ class WebsiteSpeedChart {
       'legend_position'     => 'right',
       'data_labels'         => $this->chartSettings['data_labels'],
       'tooltips'            => $this->chartSettings['tooltips'],
-      'grouping'            => TRUE,
+      'grouping'            => FALSE,
       'colors'              => $this->chartSettings['colors'],
       'min'                 => $this->chartSettings['min'],
       'max'                 => $this->chartSettings['max'],
