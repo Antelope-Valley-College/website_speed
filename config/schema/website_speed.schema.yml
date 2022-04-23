@@ -24,3 +24,6 @@ website_speed.settings:
     debug_mode:
       type: boolean
       label: 'Enable debug mode for the module'
+    logs_to_retain:
+      type: integer
+      label: 'Number of log entries to retain'
