@@ -1,6 +1,6 @@
 name: 'Website Speed'
 type: module
 description: 'Monitor the performance of the different pages in the website.'
-core_version_requirement: ^8 || ^9
+core_version_requirement: ^8 || ^9 || ^10
 configure: website_speed.settings_form
 
