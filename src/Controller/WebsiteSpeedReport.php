@@ -125,8 +125,8 @@ class WebsiteSpeedReport extends ControllerBase {
     $chart = new WebsiteSpeedChart($this->container);
     $build = $chart->build;
     $options = $chart->build['#options'];
-    $options['type'] = 'column';
-    $options['title'] = '';
+    $options['type'] = 'bar';
+    $options['title'] = 'Speed Distribution';
     $options['yaxis_title'] = 'Percentage';
     $options['xaxis_title'] = 'Time Range';
 
@@ -194,13 +194,13 @@ class WebsiteSpeedReport extends ControllerBase {
     $seriesData[] = [
       'name' => 'Percentage of Requests',
       'color' => '#0678BE',
-      'type' => 'column',
+      'type' => 'bar',
       'data' => $data1,
     ];
     $seriesData[] = [
       'name' => 'Percentage of Time',
       'color' => '#53B0EB',
-      'type' => 'column',
+      'type' => 'bar',
       'data' => $data2,
     ];
     $build['#categories'] = $categories;

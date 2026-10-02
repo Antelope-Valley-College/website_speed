@@ -47,6 +47,7 @@ function website_speed_theme() {
         'seriesData' => [],
         'options' => [],
         'id' => '',
+		'chart_definition' => [],
       ],
     ],
   ];
@@ -59,25 +60,44 @@ function template_preprocess_website_speed_chart(&$variables) {
   $moduleHandler = \Drupal::service('module_handler');
   // Override chart capabilities only if charts module is installed.
   if ($moduleHandler->moduleExists('charts')) {
-    // Charts override settings applied at this point.
-    $chartOverridePluginManager = \Drupal::service('plugin.manager.charts_override');
-    $plugin_definition = [];
-    $chartOverrideOptions = [];
-    try {
-      $plugin_definition = $chartOverridePluginManager->getDefinition($variables['library'] . '_overrides');
-      if (!empty($plugin_definition)) {
-        $chartOverridePlugin = $chartOverridePluginManager->createInstance($variables['library'] . '_overrides');
-        $chartOverrideOptions = $chartOverridePlugin->chartOverrides($variables['options']);
-      }
-    }
-    catch (PluginNotFoundException $e) {
-      \Drupal::service('messenger')
-        ->addMessage(t('Exception: @error', ['@error', $e->getMessage()]));
-    }
-
-    $plugin_manager = \Drupal::service('plugin.manager.charts');
-    $plugin = $plugin_manager->createInstance($variables['library']);
-    $plugin->buildVariables($variables['options'], $variables['id'], $variables, $variables['categories'], $variables['seriesData'], [], $chartOverrideOptions);
+	// Reconstruct the chart data into a standard 5.x Render Array format
+	$seriesData = [];
+	foreach($variables['seriesData'] as $array) {
+		$seriesData[]=['title'=>$array['name'],'data'=>$array['data']];
+	}
+	$options = $variables['options'];
+    $chart_render_array = [
+    'id'         => $variables['id'],
+    'chart_type' => $options['type'] ?? 'line',
+    'title'      => $options['title'] ?? '',
+    'library'    => $variables['library'],
+    'series'     => $seriesData,
+    'axes'       => [
+        'xaxis' => [
+			'type'   => 'chart_xaxis',
+            'title'  => $options['xaxis_title'] ?? '',
+            'labels' => $variables['categories'],
+        ],
+        'yaxis' => [
+			'type'   => 'chart_yaxis',
+            'title'  => $options['yaxis_title'] ?? '',
+            'min'    => $options['min'] ?? '',
+            'max'    => $options['max'] ?? '',
+            'prefix' => $options['yaxis_prefix'] ?? '',
+            'suffix' => $options['yaxis_suffix'] ?? '',
+        ],
+    ],
+    'options'    => [
+        'legend_position'   => $options['legend_position'] ?? 'right',
+        'data_labels'       => $options['data_markers'] ?? FALSE,
+        'tooltips'          => $options['tooltips'] ?? TRUE,
+        'colors'            => $options['colors'] ?? [],
+        'three_dimensional' => FALSE,
+    ],
+];
+	
+    // Explicitly merge the new render elements directly into your template output variables
+    $variables['chart_definition'] = $chart_render_array;
   }
 }
 

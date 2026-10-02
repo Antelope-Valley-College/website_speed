@@ -40,37 +40,51 @@ class WebsiteSpeedChart {
    *   Service container.
    */
   public function __construct(ContainerInterface $container) {
-    $this->chartSettings = $container->get('charts.settings')->getChartsSettings();
+    // NOTE: 'charts.settings' is a config object name, not a service, so
+    // $container->get('charts.settings') was never valid and always threw a
+    // ServiceNotFoundException. Load it via config factory instead.
+    $this->chartSettings = \Drupal::config('charts.settings')->getRawData();
     $this->uuidService = $container->get('uuid');
 
-    $library = $this->chartSettings['library'];
+    // As of Charts 5.x, charts.settings nests everything under
+    // 'charts_default_settings' (with 'display'/'xaxis'/'yaxis' sub-keys)
+    // instead of storing keys flat at the top level. Pull out the relevant
+    // sub-arrays here so the rest of this method can stay unchanged.
+    $defaults = $this->chartSettings['charts_default_settings'] ?? [];	
+	
+    $display = $defaults['display'] ?? [];
+    $gauge = $display['gauge'] ?? [];
+    $xaxis = $defaults['xaxis'] ?? [];
+    $yaxis = $defaults['yaxis'] ?? [];
+
+    $library = $defaults['library'] ?? '';
 
     // Set default options.
     $options = [
-      'type'                => $this->chartSettings['type'],
-      'title'               => $this->t('Chart title'),
-      'xaxis_title'         => $this->t('X-Axis'),
-      'yaxis_title'         => $this->t('Y-Axis'),
-      'yaxis_min'           => '',
-      'yaxis_max'           => '',
+      'type'                => $defaults['type'] ?? 'line',
+      'title'               => $display['title'] ?? '',
+      'xaxis_title'         => $xaxis['title'] ?? '',
+      'yaxis_title'         => $yaxis['title'] ?? '',
+      'yaxis_min'           => $yaxis['min'] ?? 0,
+      'yaxis_max'           => $yaxis['max'] ?? 0,
       'three_dimensional'   => FALSE,
       'title_position'      => 'out',
       'legend_position'     => 'right',
-      'data_labels'         => $this->chartSettings['data_labels'],
-      'tooltips'            => $this->chartSettings['tooltips'],
+      'data_labels'         => $display['data_labels'] ?? FALSE,
+      'tooltips'            => $display['tooltips'] ?? TRUE,
       'grouping'            => FALSE,
-      'colors'              => $this->chartSettings['colors'],
-      'min'                 => $this->chartSettings['min'],
-      'max'                 => $this->chartSettings['max'],
-      'yaxis_prefix'        => $this->chartSettings['yaxis_prefix'],
-      'yaxis_suffix'        => $this->chartSettings['yaxis_suffix'],
-      'data_markers'        => $this->chartSettings['data_markers'],
-      'red_from'            => $this->chartSettings['red_from'],
-      'red_to'              => $this->chartSettings['red_to'],
-      'yellow_from'         => $this->chartSettings['yellow_from'],
-      'yellow_to'           => $this->chartSettings['yellow_to'],
-      'green_from'          => $this->chartSettings['green_from'],
-      'green_to'            => $this->chartSettings['green_to'],
+      'colors'              => $display['colors'] ?? [],
+      'min'                 => $yaxis['min'] ?? '',
+      'max'                 => $yaxis['max'] ?? '',
+      'yaxis_prefix'        => $yaxis['prefix'] ?? '',
+      'yaxis_suffix'        => $yaxis['suffix'] ?? '',
+      'data_markers'        => $display['data_markers'] ?? FALSE,
+      'red_from'            => $gauge['red_from'] ?? '',
+      'red_to'              => $gauge['red_to'] ?? '',
+      'yellow_from'         => $gauge['yellow_from'] ?? '',
+      'yellow_to'           => $gauge['yellow_to'] ?? '',
+      'green_from'          => $gauge['green_from'] ?? '',
+      'green_to'            => $gauge['green_to'] ?? '',
     ];
 
     // Creates a UUID for the chart ID.
@@ -92,7 +106,7 @@ class WebsiteSpeedChart {
    * Check if the chart can be shown based on config settings.
    */
   public function canRenderChart() {
-    if (!isset($this->chartSettings['library'])) {
+    if (empty($this->chartSettings['charts_default_settings']['library'])) {
       return FALSE;
     }
     return TRUE;
