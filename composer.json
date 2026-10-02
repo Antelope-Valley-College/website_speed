@@ -9,15 +9,20 @@
       "name": "Anoop John (anoopjohn)",
       "homepage": "https://www.drupal.org/u/anoopjohn",
       "role": "Maintainer"
+    },
+    {
+      "name": "Michael Wilmes (mwilmes-at-avc)",
+      "homepage": "https://www.avc.edu",
+      "role": "Person to last touch it"
     }
-  ],
+],
   "homepage": "https://drupal.org/project/website_speed",
   "support": {
     "issues": "https://drupal.org/project/issues/website_speed",
     "source": "https://git.drupalcode.org/project/website_speed"
   },
   "require": {
-    "drupal/core": "^8.0 || ^9.0 || ^10"
+    "drupal/core": "^8.0 || ^9.0 || ^10 || ^11.0"
   },
   "suggest": {
     "drupal/charts": "When Charts module is installed with a supported charting library, the Website Speed module will show graphs in the page speed reports."
